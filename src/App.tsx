@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, Home, BarChart3, Hammer, TrendingUp, Users, Activity, FileText, Share2, History, BookOpen } from 'lucide-react';
 import { ContractProvider } from './components/narrative/ContractContext';
 import { NarrativeIntro } from './components/screens/NarrativeIntro';
 import type { Player } from './data/playerDatabase';
+import { getPlayerById, loadPlayersFromCsv } from './data/playerDatabase';
 import { PlayerStats } from './components/screens/PlayerStats';
 import { PlayerComparisons } from './components/screens/PlayerComparisons';
 import { EstimatedValue } from './components/screens/EstimatedValue';
@@ -35,12 +36,93 @@ type Screen =
   | 'share' 
   | 'audit';
 
+const APP_STATE_KEY = 'borasApp_state';
+
 function AppContent() {
-  const [mode, setMode] = useState<Mode>('narrative');
-  const [currentScreen, setCurrentScreen] = useState<Screen>('intro');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Load initial state from localStorage
+  const getInitialState = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(APP_STATE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && typeof parsed === 'object') {
+            return {
+              mode: parsed.mode || 'narrative',
+              currentScreen: parsed.currentScreen || 'intro',
+              sidebarOpen: parsed.sidebarOpen !== undefined ? parsed.sidebarOpen : true,
+              selectedPlayerId: parsed.selectedPlayerId || null,
+              selectedCompIds: parsed.selectedCompIds || [],
+            };
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load app state from localStorage:', error);
+      }
+    }
+    return {
+      mode: 'narrative' as Mode,
+      currentScreen: 'intro' as Screen,
+      sidebarOpen: true,
+      selectedPlayerId: null as string | null,
+      selectedCompIds: [] as string[],
+    };
+  };
+
+  const initialState = getInitialState();
+  const [mode, setMode] = useState<Mode>(initialState.mode);
+  const [currentScreen, setCurrentScreen] = useState<Screen>(initialState.currentScreen);
+  const [sidebarOpen, setSidebarOpen] = useState(initialState.sidebarOpen);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(initialState.selectedPlayerId);
+  const [selectedCompIds, setSelectedCompIds] = useState<string[]>(initialState.selectedCompIds);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedComps, setSelectedComps] = useState<Player[]>([]);
+  const [playersLoaded, setPlayersLoaded] = useState(false);
+
+  // Load CSV data on mount
+  useEffect(() => {
+    loadPlayersFromCsv()
+      .then(() => {
+        setPlayersLoaded(true);
+      })
+      .catch((err) => {
+        console.error('Failed to load players:', err);
+        setPlayersLoaded(true);
+      });
+  }, []);
+
+  // Load player objects from IDs when players are loaded
+  useEffect(() => {
+    if (playersLoaded && selectedPlayerId) {
+      const player = getPlayerById(selectedPlayerId);
+      setSelectedPlayer(player || null);
+    }
+    
+    if (playersLoaded && selectedCompIds.length > 0) {
+      const comps = selectedCompIds
+        .map(id => getPlayerById(id))
+        .filter((p): p is Player => p !== undefined);
+      setSelectedComps(comps);
+    }
+  }, [playersLoaded, selectedPlayerId, selectedCompIds]);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stateToSave = {
+          mode,
+          currentScreen,
+          sidebarOpen,
+          selectedPlayerId,
+          selectedCompIds,
+        };
+        localStorage.setItem(APP_STATE_KEY, JSON.stringify(stateToSave));
+      } catch (error) {
+        console.warn('Failed to save app state to localStorage:', error);
+      }
+    }
+  }, [mode, currentScreen, sidebarOpen, selectedPlayerId, selectedCompIds]);
 
   const navigation = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -53,6 +135,19 @@ function AppContent() {
     { id: 'audit', label: 'Audit', icon: History },
   ];
 
+  // Show loading screen while players are being loaded (only if we need them)
+  const needsPlayerData = !playersLoaded && (selectedPlayerId || selectedCompIds.length > 0);
+  if (needsPlayerData) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0C] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#004B73] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#A3A8B0]">Loading player data...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Narrative Mode Screens
   if (mode === 'narrative') {
     if (currentScreen === 'intro') {
@@ -61,11 +156,15 @@ function AppContent() {
           onBegin={(player, comps) => {
             setSelectedPlayer(player);
             setSelectedComps(comps);
+            setSelectedPlayerId(player?.id || null);
+            setSelectedCompIds(comps.map(c => c.id));
             setCurrentScreen('player-stats');
           }}
           onNavigateTo={(screen, player, comps) => {
             setSelectedPlayer(player);
             setSelectedComps(comps);
+            setSelectedPlayerId(player?.id || null);
+            setSelectedCompIds(comps.map(c => c.id));
             setCurrentScreen(screen);
           }}
         />
@@ -111,7 +210,17 @@ function AppContent() {
           setMode('exploration');
           setCurrentScreen('overview');
         }}
-        onStartOver={() => setCurrentScreen('intro')}
+        onStartOver={() => {
+          // Clear all saved state
+          setSelectedPlayer(null);
+          setSelectedComps([]);
+          setSelectedPlayerId(null);
+          setSelectedCompIds([]);
+          setCurrentScreen('intro');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(APP_STATE_KEY);
+          }
+        }}
         onBack={() => setCurrentScreen('contract-architecture')}
       />;
     }

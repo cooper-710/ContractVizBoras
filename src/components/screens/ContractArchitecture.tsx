@@ -51,14 +51,16 @@ export function ContractArchitecture({ onContinue, onBack }: ContractArchitectur
     });
 
     // Generate data for contract years (2026-2031 and beyond)
-    // For years beyond 2031, use the 2031 value (per disclaimer)
-    const payroll2031 = payrollByYearMap.get(2031) || 0;
+    // For years with missing data, use the last available year's value
+    const yearsWithData = Array.from(payrollByYearMap.keys()).sort((a, b) => b - a);
+    const lastAvailableYear = yearsWithData[0];
+    const lastAvailablePayroll = lastAvailableYear ? payrollByYearMap.get(lastAvailableYear) || 0 : 0;
     
     return yearlyBreakdown.map(y => {
-      // Get payroll for this year, or use 2031 value for years beyond 2031
+      // Get payroll for this year, or use last available value for missing years
       let basePayroll = payrollByYearMap.get(y.year);
       if (basePayroll === undefined) {
-        basePayroll = y.year > 2031 ? payroll2031 : 0;
+        basePayroll = lastAvailablePayroll;
       }
       return {
         year: y.year.toString(),
@@ -88,16 +90,13 @@ export function ContractArchitecture({ onContinue, onBack }: ContractArchitectur
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h2 className="text-[#ECEDEF]">Contract Structure</h2>
-            <p className="text-[#A3A8B0] text-sm mt-1">
-              Design the deal with complete control over every parameter
-            </p>
           </div>
           <div className="flex gap-3">
             <SBButton variant="ghost" onClick={onBack} icon={<ArrowLeft size={18} />}>
               Back
             </SBButton>
             <SBButton onClick={onContinue} icon={<ArrowRight size={18} />} iconPosition="right">
-              View Analysis
+              View Complete Analysis
             </SBButton>
           </div>
         </div>
@@ -642,7 +641,7 @@ export function ContractArchitecture({ onContinue, onBack }: ContractArchitectur
                 </div>
               </div>
               <p className="text-[#A3A8B0] text-xs mt-3 italic">
-                * Payroll data available through 2031 only. Years beyond 2031 use 2031 values.
+                * Payroll data may be incomplete for some teams. Missing years use the last available year's value.
               </p>
             </motion.div>
 
@@ -688,18 +687,19 @@ export function ContractArchitecture({ onContinue, onBack }: ContractArchitectur
                 </div>
               </div>
             </div>
-
-            <SBButton 
-              size="lg" 
-              onClick={onContinue}
-              icon={<ArrowRight size={18} />}
-              iconPosition="right"
-              className="w-full"
-            >
-              View Complete Analysis
-            </SBButton>
           </div>
         </div>
+
+        {/* Full-width bottom button */}
+        <SBButton 
+          size="lg" 
+          onClick={onContinue}
+          icon={<ArrowRight size={18} />}
+          iconPosition="right"
+          className="w-full mt-6"
+        >
+          View Complete Analysis
+        </SBButton>
       </div>
     </div>
   );

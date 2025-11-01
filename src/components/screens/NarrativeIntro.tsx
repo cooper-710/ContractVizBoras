@@ -6,6 +6,8 @@ import { ALL_PLAYERS, loadPlayersFromCsv, getPlayersWithContracts, searchPlayers
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Badge } from '../ui/badge';
 import { cn } from '../ui/utils';
+import borasLogo from '../../assets/Boras2.png';
+import sequenceLogo from '../../assets/Sequence.png';
 
 interface NarrativeIntroProps {
   onBegin: (selectedPlayer: Player, selectedComps: Player[]) => void;
@@ -155,7 +157,7 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1] }}
-          className="pt-16 pb-8 px-6 text-center"
+          className="pt-32 pb-8 px-6 text-center"
           style={{
             textShadow: '0 0 20px rgba(0, 75, 115, 0.4)',
           }}
@@ -165,16 +167,33 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
           >
-            <h1 className="text-5xl font-semibold text-[#ECEDEF] mb-2 tracking-tight" style={{
-              textShadow: '0 0 30px rgba(0, 75, 115, 0.6), 0 0 60px rgba(0, 75, 115, 0.4), -1px -1px 0 rgba(0, 75, 115, 0.8), 1px -1px 0 rgba(0, 75, 115, 0.8), -1px 1px 0 rgba(0, 75, 115, 0.8), 1px 1px 0 rgba(0, 75, 115, 0.8)',
-            }}>
-              Boras Corp.
-            </h1>
-            <p className="text-base text-[#A3A8B0] font-medium tracking-wide" style={{
-              textShadow: '0 0 20px rgba(0, 75, 115, 0.4), -1px -1px 0 rgba(0, 75, 115, 0.6), 1px -1px 0 rgba(0, 75, 115, 0.6), -1px 1px 0 rgba(0, 75, 115, 0.6), 1px 1px 0 rgba(0, 75, 115, 0.6)',
-            }}>
-              Powered By SequenceBioLab
-            </p>
+            <div className="flex items-center justify-center gap-4 mb-3">
+              <img 
+                src={borasLogo} 
+                alt="Boras Corp Logo" 
+                className="object-contain"
+                style={{ height: '8rem' }}
+              />
+              <h1 className="font-semibold text-[#ECEDEF] tracking-tight" style={{
+                fontSize: '8rem',
+                textShadow: '0 0 30px rgba(0, 75, 115, 0.6), 0 0 60px rgba(0, 75, 115, 0.4), -1px -1px 0 rgba(0, 75, 115, 0.8), 1px -1px 0 rgba(0, 75, 115, 0.8), -1px 1px 0 rgba(0, 75, 115, 0.8), 1px 1px 0 rgba(0, 75, 115, 0.8)',
+              }}>
+                Boras Corp.
+              </h1>
+            </div>
+            <div className="flex items-center justify-center gap-3">
+              <p className="text-2xl text-[#A3A8B0] font-medium tracking-wide" style={{
+                textShadow: '0 0 20px rgba(0, 75, 115, 0.4), -1px -1px 0 rgba(0, 75, 115, 0.6), 1px -1px 0 rgba(0, 75, 115, 0.6), -1px 1px 0 rgba(0, 75, 115, 0.6), 1px 1px 0 rgba(0, 75, 115, 0.6)',
+              }}>
+                Powered By SequenceBioLab
+              </p>
+              <img 
+                src={sequenceLogo} 
+                alt="Sequence Bio Lab Logo" 
+                className="object-contain"
+                style={{ height: '2.25rem' }}
+              />
+            </div>
           </motion.div>
         </motion.header>
 

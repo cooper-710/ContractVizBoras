@@ -52,7 +52,6 @@ export function PlayerStats({ player, onContinue, onBack }: PlayerStatsProps) {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h2 className="text-[#ECEDEF]">{profile ? profile.name : ''} • {year} Performance</h2>
-            <p className="text-[#A3A8B0] text-sm mt-1">{player.position}</p>
           </div>
           <div className="flex gap-3">
             {onBack && (
@@ -237,6 +236,17 @@ export function PlayerStats({ player, onContinue, onBack }: PlayerStatsProps) {
             />
           </motion.div>
         </div>
+        
+        {/* Full-width bottom button */}
+        <SBButton 
+          size="lg" 
+          onClick={onContinue}
+          icon={<ArrowRight size={18} />}
+          iconPosition="right"
+          className="w-full mt-6"
+        >
+          Compare to Market
+        </SBButton>
       </div>
     </div>
   );

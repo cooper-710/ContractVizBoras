@@ -415,7 +415,7 @@ export function EstimatedValue({ player, comps, onContinue, onBack }: EstimatedV
               Back
             </SBButton>
             <SBButton onClick={onContinue} icon={<ArrowRight size={18} />} iconPosition="right">
-              Continue
+              Build Contract
             </SBButton>
           </div>
         </div>
@@ -630,11 +630,16 @@ export function EstimatedValue({ player, comps, onContinue, onBack }: EstimatedV
                       <TableCell className="text-[#ECEDEF] sticky left-0 bg-[#17181B] z-10">AAV</TableCell>
                       {COMPS.filter(c => selectedComps.has(c.id)).map((comp) => (
                         <TableCell key={comp.id} className="text-[#A3A8B0] text-center">
-                          ${comp.AAV.toFixed(1)}M
+                          {comp.AAV ? `$${comp.AAV.toFixed(1)}M` : '—'}
                         </TableCell>
                       ))}
                       <TableCell className="text-[#004B73] text-center">
-                        ${(COMPS.filter(c => selectedComps.has(c.id)).reduce((s, c) => s + c.AAV, 0) / COMPS.filter(c => selectedComps.has(c.id)).length).toFixed(1)}M
+                        {(() => {
+                          const filteredComps = COMPS.filter(c => selectedComps.has(c.id) && c.AAV);
+                          return filteredComps.length > 0 
+                            ? `$${(filteredComps.reduce((s, c) => s + c.AAV, 0) / filteredComps.length).toFixed(1)}M`
+                            : '—';
+                        })()}
                       </TableCell>
                       <TableCell className="text-[#ECEDEF] text-center">
                         —
@@ -647,7 +652,9 @@ export function EstimatedValue({ player, comps, onContinue, onBack }: EstimatedV
                       <TableCell className="text-[#ECEDEF] sticky left-0 bg-[#17181B] z-10">AAV (Inflation)</TableCell>
                       {COMPS.filter(c => selectedComps.has(c.id)).map((comp) => (
                         <TableCell key={comp.id} className="text-[#A3A8B0] text-center">
-                          ${calculations.inflationAdjustedById?.[comp.id]?.toFixed(1) || comp.AAV.toFixed(1)}M
+                          {comp.AAV 
+                            ? `$${calculations.inflationAdjustedById?.[comp.id]?.toFixed(1) || comp.AAV.toFixed(1)}M`
+                            : '—'}
                         </TableCell>
                       ))}
                       <TableCell className="text-[#004B73] text-center">
@@ -794,7 +801,7 @@ export function EstimatedValue({ player, comps, onContinue, onBack }: EstimatedV
             {/* Stat Weights (Collapsible) */}
             <Collapsible open={weightsOpen} onOpenChange={setWeightsOpen}>
               <div className="bg-[#17181B] border border-[rgba(255,255,255,0.14)] rounded-[14px] overflow-hidden">
-                <CollapsibleTrigger className="w-full px-5 py-4 flex items-center justify-between hover:bg-[rgba(255,255,255,0.02)] transition-colors">
+                <div className="px-5 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <h4 className="text-[#A8B4BD] text-sm">Stat Weights</h4>
                     <Select value={selectedPosition} onValueChange={handlePositionChange}>
@@ -814,13 +821,17 @@ export function EstimatedValue({ player, comps, onContinue, onBack }: EstimatedV
                       </SelectContent>
                     </Select>
                   </div>
-                  <ChevronDown
-                    size={16}
-                    className={`text-[#A3A8B0] transition-transform ${
-                      weightsOpen ? 'rotate-180' : ''
-                    }`}
-                  />
-                </CollapsibleTrigger>
+                  <CollapsibleTrigger asChild>
+                    <button className="hover:bg-[rgba(255,255,255,0.02)] transition-colors rounded p-1">
+                      <ChevronDown
+                        size={16}
+                        className={`text-[#A3A8B0] transition-transform ${
+                          weightsOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+                </div>
                 <CollapsibleContent>
                   <div className="px-5 pb-5 space-y-3">
                     {Object.entries(STAT_CONFIG).map(([key, config]) => {
@@ -926,6 +937,17 @@ export function EstimatedValue({ player, comps, onContinue, onBack }: EstimatedV
             </motion.div>
           </motion.div>
         </div>
+        
+        {/* Full-width bottom button */}
+        <SBButton 
+          size="lg" 
+          onClick={onContinue}
+          icon={<ArrowRight size={18} />}
+          iconPosition="right"
+          className="w-full mt-6"
+        >
+          Build Contract
+        </SBButton>
       </div>
     </div>
   );

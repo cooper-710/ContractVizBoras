@@ -80,6 +80,11 @@ export function PlayerComparisons({ player, comps, onContinue, onBack }: PlayerC
 
   // Format stat value for display
   const formatStatValue = (statKey: StatKey, value: number): string => {
+    // Handle undefined/null values
+    if (value === undefined || value === null || isNaN(value)) {
+      return '—';
+    }
+    
     const label = STAT_LABELS[statKey];
     if (label.includes('%')) {
       const pct = value <= 1 ? value * 100 : value;
@@ -367,6 +372,17 @@ export function PlayerComparisons({ player, comps, onContinue, onBack }: PlayerC
             </div>
           </div>
         </div>
+        
+        {/* Full-width bottom button */}
+        <SBButton 
+          size="lg" 
+          onClick={onContinue}
+          icon={<ArrowRight size={18} />}
+          iconPosition="right"
+          className="w-full mt-6"
+        >
+          Build Contract
+        </SBButton>
       </div>
     </div>
   );

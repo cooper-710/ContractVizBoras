@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 export interface ContractTerms {
   // Base Terms
@@ -87,8 +87,40 @@ const defaultTerms: ContractTerms = {
   taxConsiderations: false,
 };
 
+const STORAGE_KEY = 'borasApp_contractTerms';
+
 export function ContractProvider({ children }: { children: ReactNode }) {
-  const [terms, setTerms] = useState<ContractTerms>(defaultTerms);
+  // Load initial terms from localStorage if available
+  const getInitialTerms = (): ContractTerms => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          // Validate that stored data has all required fields
+          if (parsed && typeof parsed === 'object') {
+            return { ...defaultTerms, ...parsed };
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load contract terms from localStorage:', error);
+      }
+    }
+    return defaultTerms;
+  };
+
+  const [terms, setTerms] = useState<ContractTerms>(getInitialTerms);
+
+  // Save terms to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(terms));
+      } catch (error) {
+        console.warn('Failed to save contract terms to localStorage:', error);
+      }
+    }
+  }, [terms]);
 
   const updateTerm = (key: keyof ContractTerms, value: any) => {
     setTerms(prev => ({ ...prev, [key]: value }));
@@ -96,6 +128,14 @@ export function ContractProvider({ children }: { children: ReactNode }) {
 
   const resetTerms = () => {
     setTerms(defaultTerms);
+    // Clear localStorage when resetting
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (error) {
+        console.warn('Failed to clear contract terms from localStorage:', error);
+      }
+    }
   };
 
   // Calculate yearly breakdown

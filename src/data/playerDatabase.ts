@@ -274,7 +274,8 @@ export const ALL_PLAYERS: Player[] = [];
 
 // Helper function to get player by ID or name
 export function getPlayerById(playerId: string): Player | undefined {
-  return ALL_PLAYERS.find(p => p.id === playerId);
+  if (!cachedPlayers) return undefined;
+  return cachedPlayers.find(p => p.id === playerId);
 }
 
 export function getPlayerByName(playerName: string): Player | undefined {

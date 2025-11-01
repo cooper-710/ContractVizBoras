@@ -17,7 +17,7 @@ interface ContractSummaryProps {
 
 export function ContractSummary({ onExploreData, onStartOver, onBack }: ContractSummaryProps) {
   const { terms, totalValue,            
-          guaranteedValue, potentialValue, cbtImpact, yearlyBreakdown } = useContract();
+          guaranteedValue, potentialValue, cbtImpact, yearlyBreakdown, resetTerms } = useContract();
   const { selectedTeamId, setSelectedTeamId, selectedTeamData, availableTeams, loading: payrollLoading } = usePayrollData();
   const [selectedYear, setSelectedYear] = useState<number>(yearlyBreakdown[0]?.year || 2026);
 
@@ -46,14 +46,16 @@ export function ContractSummary({ onExploreData, onStartOver, onBack }: Contract
     });
 
     // Generate data for contract years (2026-2031 and beyond)
-    // For years beyond 2031, use the 2031 value (per disclaimer)
-    const payroll2031 = payrollByYearMap.get(2031) || 0;
+    // For years with missing data, use the last available year's value
+    const yearsWithData = Array.from(payrollByYearMap.keys()).sort((a, b) => b - a);
+    const lastAvailableYear = yearsWithData[0];
+    const lastAvailablePayroll = lastAvailableYear ? payrollByYearMap.get(lastAvailableYear) || 0 : 0;
     
     return yearlyBreakdown.map(y => {
-      // Get payroll for this year, or use 2031 value for years beyond 2031
+      // Get payroll for this year, or use last available value for missing years
       let basePayroll = payrollByYearMap.get(y.year);
       if (basePayroll === undefined) {
-        basePayroll = y.year > 2031 ? payroll2031 : 0;
+        basePayroll = lastAvailablePayroll;
       }
       return {
         year: y.year.toString(),
@@ -83,9 +85,6 @@ export function ContractSummary({ onExploreData, onStartOver, onBack }: Contract
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h2 className="text-[#ECEDEF]">Contract Summary</h2>
-            <p className="text-[#A3A8B0] text-sm mt-1">
-              Proposal Overview
-            </p>
           </div>
           <SBButton variant="ghost" onClick={onBack} icon={<ArrowLeft size={18} />}>
             Back
@@ -289,7 +288,7 @@ export function ContractSummary({ onExploreData, onStartOver, onBack }: Contract
               </div>
             </div>
             <p className="text-[#A3A8B0] text-xs mt-3 italic">
-              * Payroll data available through 2031 only. Years beyond 2031 use 2031 values.
+              * Payroll data may be incomplete for some teams. Missing years use the last available year's value.
             </p>
           </motion.div>
         </div>
@@ -353,8 +352,10 @@ export function ContractSummary({ onExploreData, onStartOver, onBack }: Contract
           <SBButton 
             size="lg" 
             variant="secondary"
-            onClick={onStartOver}
-            icon={<Home size={18} />}
+            onClick={() => {
+              resetTerms();
+              onStartOver();
+            }}
           >
             Create New Scenario
           </SBButton>
