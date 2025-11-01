@@ -151,7 +151,7 @@ Baseline Years = Average(Selected Comparable Player Contract Years)
 
 Simple arithmetic mean of contract lengths from selected comparables.
 
-### 2. Age Adjustment (Player-Friendly Version)
+### 2. Age Adjustment
 
 **Age Delta**:
 ```
@@ -167,7 +167,7 @@ Penalty for older players (quadratic curve):
 penalty_component = (0.05 × older_delta) + (0.010 × older_delta²)
 ```
 
-Benefit for younger players (with diminishing returns):
+Adjustment for younger players (with diminishing returns):
 ```
 benefit_component = (0.03 × younger_delta) - (0.005 × younger_delta²)
 ```
@@ -190,7 +190,7 @@ Examples:
 - Age 30: 0 years penalty
 - Age 31: 0.25 years penalty
 - Age 35: 1.25 years penalty
-- Age 38+: 2.0 years penalty (capped)
+- Age 38+: 2.0 years penalty (maximum)
 
 ### 3. Performance Adjustment
 
@@ -200,11 +200,11 @@ performance_adjustment_raw = (aav_multiplier - 1) × 1.8
 performance_adjustment = clamp(performance_adjustment_raw, -1.5, 1.5)
 ```
 
-This links contract length to performance quality:
-- Elite performers (AAV multiplier > 1) get longer deals
-- Underperformers (AAV multiplier < 1) get shorter deals
-- Impact is amplified (1.8×) compared to AAV effect
-- Capped at ±1.5 years
+This correlates contract length with performance quality:
+- AAV multiplier > 1: positive adjustment to years
+- AAV multiplier < 1: negative adjustment to years
+- Multiplier amplifies AAV effect by 1.8×
+- Bounded at ±1.5 years
 
 ### 4. Total Years Adjustment
 
@@ -224,7 +224,7 @@ proposed_years = baseline_years + years_adjustment
 capped_years = min(baseline_years + 2.0, proposed_years)
 ```
 
-Cannot exceed baseline by more than 2.0 years, even with perfect performance and young age.
+Maximum years cannot exceed baseline by more than 2.0 years.
 
 **Final Rounding**:
 ```
@@ -583,9 +583,9 @@ Raw multiplier = weighted_sum / total_weight
 Final multiplier = clamp(raw_multiplier, 0.75, 1.4)
 ```
 
-Prevents extreme valuations:
-- Minimum: 75% of baseline (poor performance)
-- Maximum: 140% of baseline (elite performance)
+Bounds constrain valuations:
+- Minimum: 75% of baseline (AAV multiplier < 0.75)
+- Maximum: 140% of baseline (AAV multiplier > 1.4)
 
 ### 2. Years Adjustment Bounds
 
@@ -604,7 +604,7 @@ For most stats: ratio clamped to [0.1, 10.0]
 For Def/BsR: ratio clamped to [0.5, 2.0]
 ```
 
-Prevents divide-by-zero and extreme outliers.
+Bounds prevent divide-by-zero and extreme outliers.
 
 ### 4. Rounding & Precision
 
@@ -734,17 +734,16 @@ All calculations performed client-side for instant feedback:
 - Initial methodology implementation
 - 14 statistical categories
 - 9 position-specific weight profiles
-- Player-friendly contract length adjustments (2024 update)
 - Inflation-adjusted comparable analysis
 - Comprehensive contract structure modeling
 
-**Updates in Player-Friendly Version**:
-- Reduced age penalty: 0.08 → 0.05 (linear), 0.020 → 0.010 (quadratic)
-- Increased younger player benefit: 0.02 → 0.03
-- Raised age multiplier bounds: [0.4-1.35] → [0.6-1.5]
-- Reduced absolute age penalty: 0.45 → 0.25, cap 3.0 → 2.0, starts at 31 vs 30
-- Increased performance adjustment: multiplier 1.2 → 1.8, cap ±1.0 → ±1.5
-- Raised soft cap: baseline +1.0 → +2.0 years
+**Current Coefficient Values**:
+- Age multiplier (older): Linear 0.05, Quadratic 0.010
+- Age multiplier (younger): Linear 0.03, Quadratic -0.005
+- Age multiplier bounds: [0.6, 1.5]
+- Absolute age penalty threshold: 31 years, rate 0.25 per year, cap 2.0 years
+- Performance adjustment: Multiplier 1.8, bounds [-1.5, 1.5]
+- Soft cap: Baseline + 2.0 years maximum
 
 ---
 

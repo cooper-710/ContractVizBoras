@@ -293,7 +293,8 @@ export function ContractSummary({ onExploreData, onStartOver, onBack, onNavigate
               </div>
             </div>
             <p className="text-[#A3A8B0] text-xs mt-3 italic">
-              * Payroll data may be incomplete for some teams. Missing years use the last available year's value.
+              * Payroll data may be incomplete for some teams. Missing years use the last available year's value.<br />
+              * Player contract values are based on built structure.
             </p>
           </motion.div>
         </div>
