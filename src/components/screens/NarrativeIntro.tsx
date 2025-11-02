@@ -178,23 +178,23 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
     setMocapAvailable(selectedPlayer !== null);
   }, [selectedPlayer]);
 
-  // Pre-load Harrison Bader and comps when players are loaded
+  // Pre-load Pete Alonso and comps when players are loaded
   React.useEffect(() => {
     if (players.length === 0 || loadingPlayers || selectedPlayer !== null || selectedComps.length > 0) return;
     
-    // Find Harrison Bader
-    const harrisonBader = players.find(p => 
-      p.name.toLowerCase().includes('harrison bader') || 
-      p.name.toLowerCase().includes('bader')
+    // Find Pete Alonso
+    const peteAlonso = players.find(p => 
+      p.name.toLowerCase().includes('pete alonso') || 
+      p.name.toLowerCase().includes('alonso')
     );
     
     // Find comps
     const compNames = [
-      'Jesse Winker',
-      'Christian Vazquez',
-      'Andrew Benintendi',
-      'Max Kepler',
-      'Cedric Mullins'
+      'Freddie Freeman',
+      'Vladimir Guerrero Jr',
+      'Matt Olson',
+      'Rafael Devers',
+      'Yordan Alvarez'
     ];
     
     const foundComps = compNames
@@ -207,8 +207,8 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
       .filter((player): player is Player => player !== undefined);
     
     // Set pre-loaded values
-    if (harrisonBader) {
-      setSelectedPlayer(harrisonBader);
+    if (peteAlonso) {
+      setSelectedPlayer(peteAlonso);
     }
     
     if (foundComps.length > 0) {
@@ -334,13 +334,14 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
           >
-            <div className="flex items-center justify-center gap-4 mb-3">
+            <div className="flex items-center justify-center gap-6 mb-3">
               <img 
-                src={vaynerLogo} 
-                alt="VaynerSports Logo" 
+                src={borasLogo} 
+                alt="Boras Corp Logo" 
                 className="object-contain"
                 style={{ height: '8rem' }}
               />
+              <h1 className="font-bold text-[#ECEDEF] tracking-tight" style={{ fontSize: '8rem', lineHeight: '1' }}>Boras Corp</h1>
             </div>
           </motion.div>
         </motion.header>

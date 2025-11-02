@@ -662,11 +662,10 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
     const playersWithStats = allPositionPlayers.filter(p => hasValidStats(p));
     
     // Step 3: From position-filtered list, filter by selected team
-    // Only include players who are CURRENTLY on the team (2025 season only)
+    // Include players who played in 2024 or 2025
     const filtered = playersWithStats.filter(p => {
-      // Check if player played in 2025 (must have 2025 stats to be considered current)
-      const has2025Stats = (p.stats2025?.PA || 0) > 0;
-      if (!has2025Stats) return false;
+      // Check if player played in 2024 or 2025
+      if (!playedIn2024Or2025(p)) return false;
       
       // Use 2025 team from Positions.csv if available (most accurate for current team)
       // Fall back to player.team which should also reflect 2025 team
@@ -700,11 +699,10 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
     const playersWithStats = allPositionPlayers.filter(p => hasValidStats(p));
     
     // Step 3: From position-filtered list, filter by division
-    // Only include players who are CURRENTLY on teams in this division (2025 season only)
+    // Include players who played in 2024 or 2025
     const filtered = playersWithStats.filter(p => {
-      // Check if player played in 2025 (must have 2025 stats to be considered current)
-      const has2025Stats = (p.stats2025?.PA || 0) > 0;
-      if (!has2025Stats) return false;
+      // Check if player played in 2024 or 2025
+      if (!playedIn2024Or2025(p)) return false;
       
       // Use 2025 team from Positions.csv if available (most accurate for current team)
       // Fall back to player.team which should also reflect 2025 team
@@ -850,14 +848,14 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
 
     // Calculate replacement composite score risk based on team depth
     // Find the next best player on the team at this position (excluding the target player)
-    // Only include players who are currently on the team (2025 season only)
+    // Include players who played in 2024 or 2025
     let replacementScoreRisk = 0; // Default to 0 if no replacement available
     let replacementPlayerName = 'No Replacement'; // Default replacement name
     if (sortedTeamPlayers && sortedTeamPlayers.length > 1) {
-      // Find players other than the target player (already filtered to 2025 current team players)
+      // Find players other than the target player (already filtered to players who played in 2024 or 2025)
       const otherTeamPlayers = sortedTeamPlayers.filter(p => {
         if (p.id === player.id) return false;
-        // Already filtered to 2025 current team players in teamPositionPlayers
+        // Already filtered to players who played in 2024 or 2025 in teamPositionPlayers
         return true;
       });
       if (otherTeamPlayers.length > 0) {
@@ -870,7 +868,7 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
         // Current player score is 0, so risk is just negative replacement score
         replacementScoreRisk = -replacementScore;
       } else {
-        // No other players at position with 2025 stats - replacement would be 0 (same as losing the player)
+        // No other players at position who played in 2024 or 2025 - replacement would be 0 (same as losing the player)
         replacementScoreRisk = 0;
       }
     } else if (sortedTeamPlayers && sortedTeamPlayers.length === 1) {
