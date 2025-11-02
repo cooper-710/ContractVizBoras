@@ -313,7 +313,8 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
   const [allPlayers, setAllPlayers] = useState<Player[]>(ALL_PLAYERS);
   const [playerPositionsMap, setPlayerPositionsMap] = useState<Map<string, Set<string>> | null>(null);
   const [playerPrimaryPositionsMap, setPlayerPrimaryPositionsMap] = useState<Map<string, string>>(new Map()); // playerId -> primary position
-  const [playerTeamsMap, setPlayerTeamsMap] = useState<Map<string, string>>(new Map()); // playerId -> team_abbrev from Positions.csv
+  const [playerTeamsMap, setPlayerTeamsMap] = useState<Map<string, string>>(new Map()); // playerId -> team_abbrev from Positions.csv (time period based)
+  const [playerTeams2025Map, setPlayerTeams2025Map] = useState<Map<string, string>>(new Map()); // playerId -> team_abbrev from Positions.csv (2025 only)
   
   // All available divisions
   const allDivisions = ['AL East', 'AL Central', 'AL West', 'NL East', 'NL Central', 'NL West'];
@@ -335,6 +336,14 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
         console.log(`Loaded teams for ${teams.size} players from Positions.csv`);
       })
       .catch(err => console.error('Failed to load player positions:', err));
+    
+    // Also load 2025 teams separately for current team filtering
+    loadPlayerPositionsByTimePeriod('2025')
+      .then(({ teams: teams2025 }) => {
+        setPlayerTeams2025Map(teams2025);
+        console.log(`Loaded 2025 teams for ${teams2025.size} players from Positions.csv`);
+      })
+      .catch(err => console.error('Failed to load 2025 teams:', err));
   }, [timePeriod]);
 
   // Load player data to ensure ALL_PLAYERS is populated
@@ -653,11 +662,16 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
     const playersWithStats = allPositionPlayers.filter(p => hasValidStats(p));
     
     // Step 3: From position-filtered list, filter by selected team
-    // Use team from Positions.csv (most recent team for the time period)
+    // Only include players who are CURRENTLY on the team (2025 season only)
     const filtered = playersWithStats.filter(p => {
-      // Always use team from Positions.csv if available (it's the most accurate source)
-      const csvTeam = playerTeamsMap.get(p.id);
-      const teamToUse = csvTeam || p.team;
+      // Check if player played in 2025 (must have 2025 stats to be considered current)
+      const has2025Stats = (p.stats2025?.PA || 0) > 0;
+      if (!has2025Stats) return false;
+      
+      // Use 2025 team from Positions.csv if available (most accurate for current team)
+      // Fall back to player.team which should also reflect 2025 team
+      const csvTeam2025 = playerTeams2025Map.get(p.id);
+      const teamToUse = csvTeam2025 || p.team;
       if (!teamToUse || teamToUse === '—' || teamToUse === '') return false;
       
       // Normalize both teams for comparison
@@ -673,7 +687,7 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
       return [player, ...filtered];
     }
     return filtered;
-  }, [player, selectedTeamId, allPlayers, matchesPosition, playerPositionsMap, playerPrimaryPositionsMap, playerTeamsMap, timePeriod]);
+  }, [player, selectedTeamId, allPlayers, matchesPosition, playerPositionsMap, playerPrimaryPositionsMap, playerTeams2025Map, timePeriod]);
 
   // Filter players by position and division (two-step process)
   const divisionPositionPlayers = useMemo(() => {
@@ -686,11 +700,16 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
     const playersWithStats = allPositionPlayers.filter(p => hasValidStats(p));
     
     // Step 3: From position-filtered list, filter by division
-    // Use team from Positions.csv (most recent team for the time period)
+    // Only include players who are CURRENTLY on teams in this division (2025 season only)
     const filtered = playersWithStats.filter(p => {
-      // Always use team from Positions.csv if available (it's the most accurate source)
-      const csvTeam = playerTeamsMap.get(p.id);
-      const teamToUse = csvTeam || p.team;
+      // Check if player played in 2025 (must have 2025 stats to be considered current)
+      const has2025Stats = (p.stats2025?.PA || 0) > 0;
+      if (!has2025Stats) return false;
+      
+      // Use 2025 team from Positions.csv if available (most accurate for current team)
+      // Fall back to player.team which should also reflect 2025 team
+      const csvTeam2025 = playerTeams2025Map.get(p.id);
+      const teamToUse = csvTeam2025 || p.team;
       if (!teamToUse || teamToUse === '—' || teamToUse === '') return false;
       
       const playerDivision = getDivision(teamToUse);
@@ -702,8 +721,8 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
     if (!playerInList) {
       return [player, ...filtered];
     }
-    return filtered;
-  }, [player, selectedDivision, allPlayers, matchesPosition, playerPositionsMap, playerPrimaryPositionsMap, playerTeamsMap, timePeriod]);
+      return filtered;
+  }, [player, selectedDivision, allPlayers, matchesPosition, playerPositionsMap, playerPrimaryPositionsMap, playerTeams2025Map, timePeriod]);
 
   // Helper function to get stat value from player stats
   const getStatValue = (configKey: string, stats: PlayerStats | (PlayerStats & { HR?: number })): number => {
@@ -831,14 +850,15 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
 
     // Calculate replacement composite score risk based on team depth
     // Find the next best player on the team at this position (excluding the target player)
-    // Only include players who played in 2025 season
+    // Only include players who are currently on the team (2025 season only)
     let replacementScoreRisk = 0; // Default to 0 if no replacement available
     let replacementPlayerName = 'No Replacement'; // Default replacement name
     if (sortedTeamPlayers && sortedTeamPlayers.length > 1) {
-      // Find players other than the target player who played in 2024 or 2025
+      // Find players other than the target player (already filtered to 2025 current team players)
       const otherTeamPlayers = sortedTeamPlayers.filter(p => {
         if (p.id === player.id) return false;
-        return playedIn2024Or2025(p);
+        // Already filtered to 2025 current team players in teamPositionPlayers
+        return true;
       });
       if (otherTeamPlayers.length > 0) {
         // Get the best replacement player's composite score
@@ -1188,7 +1208,7 @@ export function TeamFit({ player, comps, onContinue, onBack }: TeamFitProps) {
                 <h4 className="text-[#A3A8B0] text-sm font-medium">Outfield</h4>
               </div>
               <DepthChartLadder
-                players={sortedTeamPlayers.filter(p => playedIn2024Or2025(p))}
+                players={sortedTeamPlayers}
                 targetPlayerId={player.id}
                 getCompositeScore={calculateCompositeScore}
                 maxPlayers={5}

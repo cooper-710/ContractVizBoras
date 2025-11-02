@@ -30,7 +30,13 @@ export function Cover({ onStart }: CoverProps) {
         {/* Hero Section */}
         <div className="mb-12">
           <h1 className="text-[#ECEDEF] mb-4">Pete Alonso</h1>
-          <p className="text-[#A3A8B0] text-xl mb-6">Boras Corp.</p>
+          <div className="flex items-center justify-center mb-6">
+            <img 
+              src="/Vayner.png" 
+              alt="VaynerSports Logo" 
+              className="object-contain h-12"
+            />
+          </div>
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <SBChip>1B</SBChip>
             <SBChip>R/R</SBChip>

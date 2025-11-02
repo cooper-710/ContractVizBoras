@@ -8,6 +8,7 @@ import { Badge } from '../ui/badge';
 import { cn } from '../ui/utils';
 import borasLogo from '../../assets/Boras2.png';
 import sequenceLogo from '../../assets/Sequence.png';
+import vaynerLogo from '../../assets/Vayner.png';
 import { fetchMultipleCsvs } from '../../data/csvLoader';
 import { getString, getField, normalizePlayerName } from '../../data/csvLoader';
 
@@ -100,6 +101,8 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
   const [loadingPlayers, setLoadingPlayers] = React.useState<boolean>(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [playerPrimaryPositionsMap, setPlayerPrimaryPositionsMap] = React.useState<Map<string, string>>(new Map());
+  const [pdfExists, setPdfExists] = React.useState<boolean>(false);
+  const [mocapAvailable, setMocapAvailable] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     let active = true;
@@ -130,34 +133,72 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
       });
   }, []);
 
-  // Pre-load Pete Alonso and comps when players are loaded
+  // Check if PDF exists for selected player
+  React.useEffect(() => {
+    if (!selectedPlayer?.name) {
+      setPdfExists(false);
+      return;
+    }
+
+    const pdfFileName = selectedPlayer.name.replace(/\s+/g, '_') + '.pdf';
+    const pdfUrl = `/${pdfFileName}`;
+
+    // Use GET request with Range header to check if PDF exists and is actually a PDF
+    // We only fetch the first 4 bytes to check the PDF header signature
+    fetch(pdfUrl, { 
+      method: 'GET',
+      headers: { 'Range': 'bytes=0-3' },
+      cache: 'no-cache'
+    })
+      .then((response) => {
+        if (response.status === 200 || response.status === 206) {
+          return response.arrayBuffer().then((buffer) => {
+            // Check if the file starts with PDF header (%PDF)
+            const bytes = new Uint8Array(buffer);
+            const isPdf = bytes.length >= 4 && 
+                         bytes[0] === 0x25 && // %
+                         bytes[1] === 0x50 && // P
+                         bytes[2] === 0x44 && // D
+                         bytes[3] === 0x46;   // F
+            setPdfExists(isPdf);
+          });
+        } else {
+          setPdfExists(false);
+        }
+      })
+      .catch(() => {
+        setPdfExists(false);
+      });
+  }, [selectedPlayer]);
+
+  // Check if Mocap is available for selected player
+  // For now, we assume mocap is available if a player is selected
+  // The external service will handle cases where content doesn't exist
+  React.useEffect(() => {
+    setMocapAvailable(selectedPlayer !== null);
+  }, [selectedPlayer]);
+
+  // Pre-load Harrison Bader and comps when players are loaded
   React.useEffect(() => {
     if (players.length === 0 || loadingPlayers || selectedPlayer !== null || selectedComps.length > 0) return;
     
-    // Find Pete Alonso
-    const peteAlonso = players.find(p => 
-      p.name.toLowerCase().includes('pete alonso') || 
-      p.name.toLowerCase().includes('alonso')
+    // Find Harrison Bader
+    const harrisonBader = players.find(p => 
+      p.name.toLowerCase().includes('harrison bader') || 
+      p.name.toLowerCase().includes('bader')
     );
     
     // Find comps
     const compNames = [
-      'Freddie Freeman',
-      'Matt Olson',
-      'Vladimir Guerrero',
-      'Rafael Devers',
-      'Yordan Alvarez'
+      'Jesse Winker',
+      'Christian Vazquez',
+      'Andrew Benintendi',
+      'Max Kepler',
+      'Cedric Mullins'
     ];
     
     const foundComps = compNames
       .map(name => {
-        if (name === 'Vladimir Guerrero') {
-          // Special handling for Vladimir Guerrero Jr.
-          return players.find(p => 
-            p.name.toLowerCase().includes('vladimir') && 
-            p.name.toLowerCase().includes('guerrero')
-          );
-        }
         return players.find(p => 
           p.name.toLowerCase().includes(name.toLowerCase().split(' ')[0]) &&
           p.name.toLowerCase().includes(name.toLowerCase().split(' ')[1])
@@ -166,8 +207,8 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
       .filter((player): player is Player => player !== undefined);
     
     // Set pre-loaded values
-    if (peteAlonso) {
-      setSelectedPlayer(peteAlonso);
+    if (harrisonBader) {
+      setSelectedPlayer(harrisonBader);
     }
     
     if (foundComps.length > 0) {
@@ -295,17 +336,11 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
           >
             <div className="flex items-center justify-center gap-4 mb-3">
               <img 
-                src={borasLogo} 
-                alt="Boras Corp Logo" 
+                src={vaynerLogo} 
+                alt="VaynerSports Logo" 
                 className="object-contain"
                 style={{ height: '8rem' }}
               />
-              <h1 className="font-semibold text-[#ECEDEF] tracking-tight" style={{
-                fontSize: '8rem',
-                textShadow: '0 0 30px rgba(0, 75, 115, 0.6), 0 0 60px rgba(0, 75, 115, 0.4), -1px -1px 0 rgba(0, 75, 115, 0.8), 1px -1px 0 rgba(0, 75, 115, 0.8), -1px 1px 0 rgba(0, 75, 115, 0.8), 1px 1px 0 rgba(0, 75, 115, 0.8)',
-              }}>
-                Boras Corp.
-              </h1>
             </div>
           </motion.div>
         </motion.header>
@@ -442,89 +477,98 @@ export function NarrativeIntro({ onBegin, onNavigateTo }: NarrativeIntroProps) {
             </div>
           </motion.div>
 
-          {/* View Mocap Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.6 }}
-            className="mb-12"
-          >
-            <div className="grid grid-cols-2 gap-4">
-              {/* Left: View Mocap Button */}
-              <motion.button
-                onClick={() => canViewMocap && onNavigateTo('mocap', selectedPlayer!, selectedComps)}
-                disabled={!canViewMocap}
-                whileHover={canViewMocap ? { scale: 1.01 } : {}}
-                whileTap={canViewMocap ? { scale: 0.99 } : {}}
-                className="group relative"
-              >
-                <div 
-                  className={cn(
-                    'backdrop-blur-xl rounded-2xl p-6 shadow-xl flex items-center justify-center gap-3 transition-all duration-300 w-full',
-                    canViewMocap 
-                      ? 'bg-[rgba(23,24,27,0.6)] border border-[rgba(0,75,115,0.3)] hover:border-[rgba(0,75,115,0.5)] hover:bg-[rgba(23,24,27,0.7)] cursor-pointer'
-                      : 'bg-[rgba(23,24,27,0.4)] border border-[rgba(255,255,255,0.08)] opacity-50 cursor-not-allowed'
-                  )}
-                  style={{
-                    boxShadow: canViewMocap
-                      ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 75, 115, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-                      : '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-                  }}
-                >
-                  <Activity 
-                    size={20} 
-                    className={cn(
-                      'transition-colors',
-                      canViewMocap ? 'text-[#004B73] group-hover:text-[#0066a0]' : 'text-[#A3A8B0]'
-                    )}
-                  />
-                  <span className={cn(
-                    'text-lg font-semibold tracking-tight',
-                    canViewMocap ? 'text-[#ECEDEF]' : 'text-[#A3A8B0]'
-                  )}>
-                    View Mocap
-                  </span>
-                </div>
-              </motion.button>
+          {/* View Mocap Buttons - Only show if content is available */}
+          {(mocapAvailable || pdfExists) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.6 }}
+              className="mb-12"
+            >
+              <div className={cn(
+                "grid gap-4",
+                mocapAvailable && pdfExists ? "grid-cols-2" : "grid-cols-1"
+              )}>
+                {/* Left: View Mocap Button */}
+                {mocapAvailable && (
+                  <motion.button
+                    onClick={() => canViewMocap && onNavigateTo('mocap', selectedPlayer!, selectedComps)}
+                    disabled={!canViewMocap}
+                    whileHover={canViewMocap ? { scale: 1.01 } : {}}
+                    whileTap={canViewMocap ? { scale: 0.99 } : {}}
+                    className="group relative"
+                  >
+                    <div 
+                      className={cn(
+                        'backdrop-blur-xl rounded-2xl p-6 shadow-xl flex items-center justify-center gap-3 transition-all duration-300 w-full',
+                        canViewMocap 
+                          ? 'bg-[rgba(23,24,27,0.6)] border border-[rgba(0,75,115,0.3)] hover:border-[rgba(0,75,115,0.5)] hover:bg-[rgba(23,24,27,0.7)] cursor-pointer'
+                          : 'bg-[rgba(23,24,27,0.4)] border border-[rgba(255,255,255,0.08)] opacity-50 cursor-not-allowed'
+                      )}
+                      style={{
+                        boxShadow: canViewMocap
+                          ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 75, 115, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                          : '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                      }}
+                    >
+                      <Activity 
+                        size={20} 
+                        className={cn(
+                          'transition-colors',
+                          canViewMocap ? 'text-[#004B73] group-hover:text-[#0066a0]' : 'text-[#A3A8B0]'
+                        )}
+                      />
+                      <span className={cn(
+                        'text-lg font-semibold tracking-tight',
+                        canViewMocap ? 'text-[#ECEDEF]' : 'text-[#A3A8B0]'
+                      )}>
+                        View Mocap
+                      </span>
+                    </div>
+                  </motion.button>
+                )}
 
-              {/* Right: View Mocap Report Button */}
-              <motion.button
-                onClick={() => canViewMocap && onNavigateTo('mocap-report', selectedPlayer!, selectedComps)}
-                disabled={!canViewMocap}
-                whileHover={canViewMocap ? { scale: 1.01 } : {}}
-                whileTap={canViewMocap ? { scale: 0.99 } : {}}
-                className="group relative"
-              >
-                <div 
-                  className={cn(
-                    'backdrop-blur-xl rounded-2xl p-6 shadow-xl flex items-center justify-center gap-3 transition-all duration-300 w-full',
-                    canViewMocap 
-                      ? 'bg-[rgba(23,24,27,0.6)] border border-[rgba(0,75,115,0.3)] hover:border-[rgba(0,75,115,0.5)] hover:bg-[rgba(23,24,27,0.7)] cursor-pointer'
-                      : 'bg-[rgba(23,24,27,0.4)] border border-[rgba(255,255,255,0.08)] opacity-50 cursor-not-allowed'
-                  )}
-                  style={{
-                    boxShadow: canViewMocap
-                      ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 75, 115, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-                      : '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-                  }}
-                >
-                  <Activity 
-                    size={20} 
-                    className={cn(
-                      'transition-colors',
-                      canViewMocap ? 'text-[#004B73] group-hover:text-[#0066a0]' : 'text-[#A3A8B0]'
-                    )}
-                  />
-                  <span className={cn(
-                    'text-lg font-semibold tracking-tight',
-                    canViewMocap ? 'text-[#ECEDEF]' : 'text-[#A3A8B0]'
-                  )}>
-                    View Mocap Report
-                  </span>
-                </div>
-              </motion.button>
-            </div>
-          </motion.div>
+                {/* Right: View Mocap Report Button */}
+                {pdfExists && (
+                  <motion.button
+                    onClick={() => canViewMocap && onNavigateTo('mocap-report', selectedPlayer!, selectedComps)}
+                    disabled={!canViewMocap}
+                    whileHover={canViewMocap ? { scale: 1.01 } : {}}
+                    whileTap={canViewMocap ? { scale: 0.99 } : {}}
+                    className="group relative"
+                  >
+                    <div 
+                      className={cn(
+                        'backdrop-blur-xl rounded-2xl p-6 shadow-xl flex items-center justify-center gap-3 transition-all duration-300 w-full',
+                        canViewMocap 
+                          ? 'bg-[rgba(23,24,27,0.6)] border border-[rgba(0,75,115,0.3)] hover:border-[rgba(0,75,115,0.5)] hover:bg-[rgba(23,24,27,0.7)] cursor-pointer'
+                          : 'bg-[rgba(23,24,27,0.4)] border border-[rgba(255,255,255,0.08)] opacity-50 cursor-not-allowed'
+                      )}
+                      style={{
+                        boxShadow: canViewMocap
+                          ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 75, 115, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                          : '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                      }}
+                    >
+                      <Activity 
+                        size={20} 
+                        className={cn(
+                          'transition-colors',
+                          canViewMocap ? 'text-[#004B73] group-hover:text-[#0066a0]' : 'text-[#A3A8B0]'
+                        )}
+                      />
+                      <span className={cn(
+                        'text-lg font-semibold tracking-tight',
+                        canViewMocap ? 'text-[#ECEDEF]' : 'text-[#A3A8B0]'
+                      )}>
+                        View Mocap Report
+                      </span>
+                    </div>
+                  </motion.button>
+                )}
+              </div>
+            </motion.div>
+          )}
 
           {/* Comparables Section - Prominent Glass Card */}
           <motion.div
